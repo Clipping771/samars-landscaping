@@ -55,8 +55,49 @@ export default function ProjectsPage() {
               <input placeholder="Project Name" value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="h-12 bg-white/5 border border-white/10 rounded-lg px-4 text-foreground focus:border-primary focus:outline-none" />
               <input placeholder="Suburb" value={editing.suburb} onChange={(e) => setEditing({ ...editing, suburb: e.target.value })} className="h-12 bg-white/5 border border-white/10 rounded-lg px-4 text-foreground focus:border-primary focus:outline-none" />
               <textarea placeholder="Description" rows={3} value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-foreground focus:border-primary focus:outline-none resize-none" />
-              <input placeholder="Before Image URL" value={editing.beforeImage} onChange={(e) => setEditing({ ...editing, beforeImage: e.target.value })} className="h-12 bg-white/5 border border-white/10 rounded-lg px-4 text-foreground focus:border-primary focus:outline-none text-sm" />
-              <input placeholder="After Image URL" value={editing.afterImage} onChange={(e) => setEditing({ ...editing, afterImage: e.target.value })} className="h-12 bg-white/5 border border-white/10 rounded-lg px-4 text-foreground focus:border-primary focus:outline-none text-sm" />
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-muted-foreground ml-1">Before Image</label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        if (editing) setEditing({ ...editing, beforeImage: reader.result as string });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }} 
+                  className="w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-white/10 file:text-foreground hover:file:bg-white/20 transition-colors" 
+                />
+                {editing.beforeImage && (
+                  <img src={editing.beforeImage} alt="Before preview" className="h-24 w-32 object-cover rounded-lg mt-2 border border-white/10" />
+                )}
+              </div>
+              
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-muted-foreground ml-1">After Image</label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        if (editing) setEditing({ ...editing, afterImage: reader.result as string });
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }} 
+                  className="w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-white/10 file:text-foreground hover:file:bg-white/20 transition-colors" 
+                />
+                {editing.afterImage && (
+                  <img src={editing.afterImage} alt="After preview" className="h-24 w-32 object-cover rounded-lg mt-2 border border-white/10" />
+                )}
+              </div>
               <button onClick={handleSave} className="flex items-center justify-center gap-2 h-12 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-gold-hover transition-colors mt-2">
                 <Save size={16} /> Save Project
               </button>

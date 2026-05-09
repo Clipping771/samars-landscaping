@@ -14,7 +14,7 @@ export const SITE_CONTENT = {
     navLinks: [
       { label: "Home", href: "/#home" },
       { label: "Services", href: "/#services" },
-      { label: "Projects", href: "/#projects" },
+      { label: "Gallery", href: "/gallery" },
       { label: "Calculator", href: "/calculator" },
       { label: "Process", href: "/#process" },
       { label: "About", href: "/#about" },
