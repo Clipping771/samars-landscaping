@@ -35,6 +35,7 @@ export function useLeads() {
 export function useProjects() {
   const [projects, setProjects] = useState<AdminProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const fetchProjects = useCallback(async () => {
     setIsLoading(true);
@@ -58,8 +59,10 @@ export function useProjects() {
   return {
     projects,
     isLoading,
+    isSaving,
     refresh: fetchProjects,
     save: async (p: AdminProject) => {
+      setIsSaving(true);
       try {
         await fetch("/api/projects", {
           method: "POST",
@@ -69,6 +72,8 @@ export function useProjects() {
         await fetchProjects();
       } catch (e) {
         console.error("Failed to save project", e);
+      } finally {
+        setIsSaving(false);
       }
     },
     remove: async (id: string) => {

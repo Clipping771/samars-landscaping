@@ -10,7 +10,7 @@ const emptyProject: Omit<AdminProject, "id" | "createdAt"> = {
 };
 
 export default function ProjectsPage() {
-  const { projects, isLoading, save, remove } = useProjects();
+  const { projects, isLoading, isSaving, save, remove } = useProjects();
   const [editing, setEditing] = useState<AdminProject | null>(null);
   const [isNew, setIsNew] = useState(false);
 
@@ -24,9 +24,9 @@ export default function ProjectsPage() {
     setIsNew(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editing || !editing.name.trim()) return;
-    save(editing);
+    await save(editing);
     setEditing(null);
     setIsNew(false);
   };
@@ -98,8 +98,12 @@ export default function ProjectsPage() {
                   <img src={editing.afterImage} alt="After preview" className="h-24 w-32 object-cover rounded-lg mt-2 border border-white/10" />
                 )}
               </div>
-              <button onClick={handleSave} className="flex items-center justify-center gap-2 h-12 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-gold-hover transition-colors mt-2">
-                <Save size={16} /> Save Project
+              <button 
+                onClick={handleSave} 
+                disabled={isSaving}
+                className={`flex items-center justify-center gap-2 h-12 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-gold-hover transition-colors mt-2 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <Save size={16} /> {isSaving ? "Uploading images..." : "Save Project"}
               </button>
             </div>
           </div>
