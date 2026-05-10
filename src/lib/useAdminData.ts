@@ -33,13 +33,52 @@ export function useLeads() {
 }
 
 export function useProjects() {
-  const [projects, refresh] = useStorageData(getProjects);
+  const [projects, setProjects] = useState<AdminProject[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchProjects = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/projects");
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data);
+      }
+    } catch (e) {
+      console.error("Failed to fetch projects", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   return {
     projects,
-    refresh,
-    save: (p: AdminProject) => { saveProject(p); refresh(); },
-    remove: (id: string) => { deleteProject(id); refresh(); },
+    isLoading,
+    refresh: fetchProjects,
+    save: async (p: AdminProject) => {
+      try {
+        await fetch("/api/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(p),
+        });
+        await fetchProjects();
+      } catch (e) {
+        console.error("Failed to save project", e);
+      }
+    },
+    remove: async (id: string) => {
+      try {
+        await fetch(`/api/projects?id=${id}`, { method: "DELETE" });
+        await fetchProjects();
+      } catch (e) {
+        console.error("Failed to delete project", e);
+      }
+    },
   };
 }
 

@@ -10,7 +10,7 @@ const emptyProject: Omit<AdminProject, "id" | "createdAt"> = {
 };
 
 export default function ProjectsPage() {
-  const { projects, save, remove } = useProjects();
+  const { projects, isLoading, save, remove } = useProjects();
   const [editing, setEditing] = useState<AdminProject | null>(null);
   const [isNew, setIsNew] = useState(false);
 
@@ -107,7 +107,11 @@ export default function ProjectsPage() {
       )}
 
       {/* Project Grid */}
-      {projects.length === 0 ? (
+      {isLoading ? (
+        <div className="glass-panel rounded-2xl p-12 text-center">
+          <p className="text-muted-foreground font-serif italic text-lg">Loading projects...</p>
+        </div>
+      ) : projects.length === 0 ? (
         <div className="glass-panel rounded-2xl p-12 text-center">
           <p className="text-muted-foreground font-serif italic text-lg">No projects yet. Click &quot;Add Project&quot; to create your first portfolio entry.</p>
         </div>

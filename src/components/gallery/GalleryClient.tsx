@@ -6,12 +6,20 @@ import { ArrowLeftRight, Image as ImageIcon } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function GalleryClient() {
-  const { projects } = useProjects();
+  const { projects, isLoading } = useProjects();
   const [showBefore, setShowBefore] = useState<Record<string, boolean>>({});
 
   const toggleImage = (id: string) => {
     setShowBefore((prev) => ({ ...prev, [id]: !prev[id] }));
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 text-center">
+        <h2 className="font-heading text-2xl text-foreground mb-4">Loading Gallery...</h2>
+      </div>
+    );
+  }
 
   if (projects.length === 0) {
     return (
