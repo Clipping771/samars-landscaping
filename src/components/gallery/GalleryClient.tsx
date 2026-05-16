@@ -75,10 +75,28 @@ export function GalleryClient() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {projects.map((project, index) => {
+          const [currentIndex, setCurrentIndex] = useState(0);
+          const totalImages = project.images?.length || 0;
           const showingBefore = showBefore[project.id] || false;
           const hasBothImages = project.beforeImage && project.afterImage;
-          const currentImage = showingBefore ? project.beforeImage : (project.afterImage || project.beforeImage || project.images?.[0]);
-          const totalImages = project.images?.length || 0;
+          
+          // Determine what to show: if user is toggling Before/After, show those. 
+          // Otherwise show the current carousel image.
+          const currentImage = hasBothImages && showingBefore 
+            ? project.beforeImage 
+            : (project.images?.[currentIndex] || project.afterImage || project.beforeImage);
+
+          const handleNext = (e: React.MouseEvent) => {
+            e.stopPropagation();
+            setCurrentIndex((prev) => (prev + 1) % totalImages);
+            if (showingBefore) toggleImage(project.id); // Reset before toggle when sliding
+          };
+
+          const handlePrev = (e: React.MouseEvent) => {
+            e.stopPropagation();
+            setCurrentIndex((prev) => (prev - 1 + totalImages) % totalImages);
+            if (showingBefore) toggleImage(project.id); // Reset before toggle when sliding
+          };
 
           return (
             <motion.div
@@ -92,31 +110,57 @@ export function GalleryClient() {
                 className="relative h-64 sm:h-80 w-full overflow-hidden bg-forest-mid flex items-center justify-center cursor-pointer"
                 onClick={() => hasBothImages && toggleImage(project.id)}
               >
-                {currentImage ? (
-                  <img
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={currentImage}
                     src={currentImage}
-                    alt={`${project.name} ${showingBefore ? "Before" : "After"}`}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.4 }}
+                    alt={`${project.name} photo`}
+                    className="w-full h-full object-cover"
                   />
-                ) : (
-                  <div className="flex flex-col items-center justify-center text-muted-foreground/50">
-                    <ImageIcon className="w-12 h-12 mb-2" />
-                    <span>No image available</span>
-                  </div>
+                </AnimatePresence>
+
+                {/* Slider Controls */}
+                {totalImages > 1 && (
+                  <>
+                    <button 
+                      onClick={handlePrev}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <button 
+                      onClick={handleNext}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 px-2 py-1 rounded-full bg-black/20 backdrop-blur-sm">
+                      {project.images.map((_, i) => (
+                        <div 
+                          key={i} 
+                          className={`w-1.5 h-1.5 rounded-full transition-all ${currentIndex === i ? 'bg-primary w-3' : 'bg-white/40'}`}
+                        />
+                      ))}
+                    </div>
+                  </>
                 )}
 
                 {hasBothImages && (
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
                     <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full font-medium text-sm border border-white/20">
                       <ArrowLeftRight size={16} />
-                      View {showingBefore ? "After" : "Before"}
+                      {showingBefore ? "See After" : "See Before"}
                     </div>
                   </div>
                 )}
                 
                 {hasBothImages && (
                   <div className="absolute top-4 left-4">
-                    <span className="bg-black/70 backdrop-blur-md text-white text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider border border-white/10">
+                    <span className="bg-primary text-primary-foreground text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-lg">
                       {showingBefore ? "Before" : "After"}
                     </span>
                   </div>
@@ -126,11 +170,11 @@ export function GalleryClient() {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      openLightbox(project.id);
+                      openLightbox(project.id, currentIndex);
                     }}
-                    className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-md text-white p-2 rounded-full border border-white/10 hover:bg-primary transition-colors"
+                    className="absolute top-4 right-4 bg-black/50 backdrop-blur-md text-white p-2 rounded-full border border-white/10 hover:bg-primary transition-colors opacity-0 group-hover:opacity-100"
                   >
-                    <Maximize2 size={18} />
+                    <Maximize2 size={16} />
                   </button>
                 )}
               </div>
