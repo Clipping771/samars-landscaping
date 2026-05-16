@@ -19,6 +19,7 @@ export interface AdminProject {
   description: string;
   beforeImage: string;
   afterImage: string;
+  images: string[];
   createdAt: string;
 }
 

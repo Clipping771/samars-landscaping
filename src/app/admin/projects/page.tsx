@@ -6,7 +6,7 @@ import { useProjects } from "@/lib/useAdminData";
 import type { AdminProject } from "@/lib/adminStore";
 
 const emptyProject: Omit<AdminProject, "id" | "createdAt"> = {
-  name: "", suburb: "", description: "", beforeImage: "", afterImage: "",
+  name: "", suburb: "", description: "", beforeImage: "", afterImage: "", images: [],
 };
 
 export default function ProjectsPage() {
@@ -20,7 +20,7 @@ export default function ProjectsPage() {
   };
 
   const openEdit = (p: AdminProject) => {
-    setEditing({ ...p });
+    setEditing({ ...p, images: p.images || [] });
     setIsNew(false);
   };
 
@@ -29,6 +29,40 @@ export default function ProjectsPage() {
     await save(editing);
     setEditing(null);
     setIsNew(false);
+  };
+
+  const addImages = (files: FileList | null) => {
+    if (!files || !editing) return;
+    
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditing(prev => {
+          if (!prev) return null;
+          const newImages = [...(prev.images || []), reader.result as string];
+          // Auto-set before/after if they are empty
+          let { beforeImage, afterImage } = prev;
+          if (!beforeImage) beforeImage = reader.result as string;
+          else if (!afterImage) afterImage = reader.result as string;
+          
+          return { ...prev, images: newImages, beforeImage, afterImage };
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index: number) => {
+    if (!editing) return;
+    const newImages = [...editing.images];
+    const removedUrl = newImages[index];
+    newImages.splice(index, 1);
+    
+    let { beforeImage, afterImage } = editing;
+    if (beforeImage === removedUrl) beforeImage = newImages[0] || "";
+    if (afterImage === removedUrl) afterImage = newImages[1] || newImages[0] || "";
+    
+    setEditing({ ...editing, images: newImages, beforeImage, afterImage });
   };
 
   return (
@@ -46,64 +80,62 @@ export default function ProjectsPage() {
       {/* Edit Modal */}
       {editing && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="glass-panel rounded-2xl p-8 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="glass-panel rounded-2xl p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-heading text-2xl text-foreground">{isNew ? "New Project" : "Edit Project"}</h2>
               <button onClick={() => setEditing(null)} className="text-muted-foreground hover:text-foreground"><X size={20} /></button>
             </div>
             <div className="flex flex-col gap-4">
-              <input placeholder="Project Name" value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="h-12 bg-white/5 border border-white/10 rounded-lg px-4 text-foreground focus:border-primary focus:outline-none" />
-              <input placeholder="Suburb" value={editing.suburb} onChange={(e) => setEditing({ ...editing, suburb: e.target.value })} className="h-12 bg-white/5 border border-white/10 rounded-lg px-4 text-foreground focus:border-primary focus:outline-none" />
+              <div className="grid grid-cols-2 gap-4">
+                <input placeholder="Project Name" value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="h-12 bg-white/5 border border-white/10 rounded-lg px-4 text-foreground focus:border-primary focus:outline-none" />
+                <input placeholder="Suburb" value={editing.suburb} onChange={(e) => setEditing({ ...editing, suburb: e.target.value })} className="h-12 bg-white/5 border border-white/10 rounded-lg px-4 text-foreground focus:border-primary focus:outline-none" />
+              </div>
               <textarea placeholder="Description" rows={3} value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-foreground focus:border-primary focus:outline-none resize-none" />
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-muted-foreground ml-1">Before Image</label>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        if (editing) setEditing({ ...editing, beforeImage: reader.result as string });
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }} 
-                  className="w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-white/10 file:text-foreground hover:file:bg-white/20 transition-colors" 
-                />
-                {editing.beforeImage && (
-                  <img src={editing.beforeImage} alt="Before preview" className="h-24 w-32 object-cover rounded-lg mt-2 border border-white/10" />
-                )}
-              </div>
               
-              <div className="flex flex-col gap-1">
-                <label className="text-sm text-muted-foreground ml-1">After Image</label>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        if (editing) setEditing({ ...editing, afterImage: reader.result as string });
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }} 
-                  className="w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-white/10 file:text-foreground hover:file:bg-white/20 transition-colors" 
-                />
-                {editing.afterImage && (
-                  <img src={editing.afterImage} alt="After preview" className="h-24 w-32 object-cover rounded-lg mt-2 border border-white/10" />
-                )}
+              <div className="mt-4">
+                <label className="text-sm font-medium text-foreground mb-2 block">Project Images</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                  {(editing.images || []).map((img, idx) => (
+                    <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border border-white/10 group">
+                      <img src={img} alt="Project" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
+                        <div className="flex gap-1 w-full">
+                          <button 
+                            onClick={() => setEditing({ ...editing, beforeImage: img })}
+                            className={`flex-1 text-[10px] py-1 rounded ${editing.beforeImage === img ? 'bg-primary text-primary-foreground' : 'bg-white/20 text-white'}`}
+                          >
+                            Before
+                          </button>
+                          <button 
+                            onClick={() => setEditing({ ...editing, afterImage: img })}
+                            className={`flex-1 text-[10px] py-1 rounded ${editing.afterImage === img ? 'bg-primary text-primary-foreground' : 'bg-white/20 text-white'}`}
+                          >
+                            After
+                          </button>
+                        </div>
+                        <button onClick={() => removeImage(idx)} className="text-destructive hover:bg-destructive/20 p-1 rounded-full transition-colors">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                      {editing.beforeImage === img && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[8px] font-bold px-1.5 py-0.5 rounded">BEFORE</div>}
+                      {editing.afterImage === img && <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-[8px] font-bold px-1.5 py-0.5 rounded">AFTER</div>}
+                    </div>
+                  ))}
+                  <label className="aspect-video rounded-lg border-2 border-dashed border-white/10 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors bg-white/5">
+                    <Plus size={24} className="text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground mt-1">Add Photos</span>
+                    <input type="file" multiple accept="image/*" onChange={(e) => addImages(e.target.files)} className="hidden" />
+                  </label>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Tip: Upload as many photos as you want. Select which ones should be the "Before" and "After" transformation photos.</p>
               </div>
+
               <button 
                 onClick={handleSave} 
                 disabled={isSaving}
-                className={`flex items-center justify-center gap-2 h-12 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-gold-hover transition-colors mt-2 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`flex items-center justify-center gap-2 h-12 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-gold-hover transition-colors mt-4 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <Save size={16} /> {isSaving ? "Uploading images..." : "Save Project"}
+                <Save size={16} /> {isSaving ? "Saving project..." : "Save Project"}
               </button>
             </div>
           </div>

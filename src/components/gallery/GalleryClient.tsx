@@ -2,15 +2,53 @@
 
 import React, { useState } from "react";
 import { useProjects } from "@/lib/useAdminData";
-import { ArrowLeftRight, Image as ImageIcon } from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowLeftRight, Image as ImageIcon, X, ChevronLeft, ChevronRight, Maximize2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function GalleryClient() {
   const { projects, isLoading } = useProjects();
   const [showBefore, setShowBefore] = useState<Record<string, boolean>>({});
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const toggleImage = (id: string) => {
     setShowBefore((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // Close on Escape key & Lock body scroll
+  React.useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+    };
+    
+    if (selectedProject) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+
+    window.addEventListener("keydown", handleEsc);
+    return () => {
+      window.removeEventListener("keydown", handleEsc);
+      document.body.style.overflow = "unset";
+    };
+  }, [selectedProject]);
+
+  const openLightbox = (projectId: string, index: number = 0) => {
+    setSelectedProject(projectId);
+    setLightboxIndex(index);
+  };
+
+  const closeLightbox = () => {
+    setSelectedProject(null);
+  };
+
+  const nextImage = (images: string[]) => {
+    setLightboxIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = (images: string[]) => {
+    setLightboxIndex((prev) => (prev - 1 + images.length) % images.length);
   };
 
   if (isLoading) {
@@ -21,19 +59,7 @@ export function GalleryClient() {
     );
   }
 
-  if (projects.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-32 text-center">
-        <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
-          <ImageIcon className="text-muted-foreground w-10 h-10" />
-        </div>
-        <h2 className="font-heading text-3xl text-foreground mb-4">Our Gallery is Growing</h2>
-        <p className="text-muted-foreground max-w-md mx-auto">
-          We are currently curating our portfolio. Please check back soon to see our latest timeless outdoor sanctuaries.
-        </p>
-      </div>
-    );
-  }
+  const activeProject = projects.find(p => p.id === selectedProject);
 
   return (
     <div className="container mx-auto px-6 py-20 lg:py-32">
@@ -42,7 +68,8 @@ export function GalleryClient() {
           Project Gallery
         </h1>
         <p className="text-lg text-muted-foreground leading-relaxed">
-          Explore our transformations. Click on the images to switch between the "Before" and "After" states of these meticulously crafted landscapes.
+          Explore our transformations. Click on the images to switch between the "Before" and "After" states. 
+          Use the gallery button to see all photos from each project.
         </p>
       </div>
 
@@ -50,7 +77,8 @@ export function GalleryClient() {
         {projects.map((project, index) => {
           const showingBefore = showBefore[project.id] || false;
           const hasBothImages = project.beforeImage && project.afterImage;
-          const currentImage = showingBefore ? project.beforeImage : (project.afterImage || project.beforeImage);
+          const currentImage = showingBefore ? project.beforeImage : (project.afterImage || project.beforeImage || project.images?.[0]);
+          const totalImages = project.images?.length || 0;
 
           return (
             <motion.div
@@ -78,7 +106,7 @@ export function GalleryClient() {
                 )}
 
                 {hasBothImages && (
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
                     <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full font-medium text-sm border border-white/20">
                       <ArrowLeftRight size={16} />
                       View {showingBefore ? "After" : "Before"}
@@ -93,23 +121,117 @@ export function GalleryClient() {
                     </span>
                   </div>
                 )}
+
+                {totalImages > 0 && (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openLightbox(project.id);
+                    }}
+                    className="absolute bottom-4 right-4 bg-black/70 backdrop-blur-md text-white p-2 rounded-full border border-white/10 hover:bg-primary transition-colors"
+                  >
+                    <Maximize2 size={18} />
+                  </button>
+                )}
               </div>
 
               <div className="p-6 md:p-8 flex-1 flex flex-col bg-gradient-to-b from-white/5 to-transparent">
-                <h3 className="font-heading text-2xl text-foreground mb-2">
-                  {project.name}
-                </h3>
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-heading text-2xl text-foreground">
+                    {project.name}
+                  </h3>
+                  {totalImages > 0 && (
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-2">
+                      {totalImages} Photos
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-4">
                   {project.suburb}
                 </p>
-                <p className="text-muted-foreground text-base leading-relaxed flex-1 line-clamp-3">
+                <p className="text-muted-foreground text-base leading-relaxed flex-1 line-clamp-2">
                   {project.description}
                 </p>
+                {totalImages > 0 && (
+                  <button 
+                    onClick={() => openLightbox(project.id)}
+                    className="mt-6 flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors group/btn"
+                  >
+                    View All Photos <ChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
+                  </button>
+                )}
               </div>
             </motion.div>
           );
         })}
       </div>
+
+      {/* Lightbox Modal */}
+      <AnimatePresence>
+        {activeProject && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[40] bg-black/95 flex flex-col items-center justify-center p-4 cursor-pointer"
+            onClick={closeLightbox}
+          >
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                closeLightbox();
+              }}
+              className="absolute top-6 right-6 flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-full border border-white/20 transition-all z-10 group"
+            >
+              <span className="text-sm font-medium">Close</span>
+              <X size={24} className="group-hover:rotate-90 transition-transform duration-300" />
+            </button>
+
+            <div 
+              className="relative w-full max-w-5xl aspect-video sm:aspect-auto sm:h-[70vh] flex items-center justify-center cursor-default"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button 
+                onClick={() => prevImage(activeProject.images)}
+                className="absolute left-0 sm:-left-16 text-white/50 hover:text-white transition-colors"
+              >
+                <ChevronLeft size={48} />
+              </button>
+
+              <img 
+                src={activeProject.images[lightboxIndex]} 
+                alt={`${activeProject.name} project photo ${lightboxIndex + 1}`}
+                className="max-w-full max-h-full object-contain rounded-lg"
+              />
+
+              <button 
+                onClick={() => nextImage(activeProject.images)}
+                className="absolute right-0 sm:-right-16 text-white/50 hover:text-white transition-colors"
+              >
+                <ChevronRight size={48} />
+              </button>
+            </div>
+
+            <div className="mt-8 text-center">
+              <h4 className="font-heading text-2xl text-white mb-2">{activeProject.name}</h4>
+              <p className="text-white/60 text-sm">
+                Photo {lightboxIndex + 1} of {activeProject.images.length}
+              </p>
+              <div className="flex gap-2 mt-4 overflow-x-auto max-w-md mx-auto p-2 scrollbar-hide">
+                {activeProject.images.map((img, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => setLightboxIndex(idx)}
+                    className={`relative w-16 h-12 rounded-md overflow-hidden flex-shrink-0 border-2 transition-all ${lightboxIndex === idx ? 'border-primary' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                  >
+                    <img src={img} className="w-full h-full object-cover" alt="thumbnail" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

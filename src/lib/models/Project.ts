@@ -6,6 +6,7 @@ export interface IProject extends Document {
   description: string;
   beforeImage: string;
   afterImage: string;
+  images: string[];
   createdAt: Date;
 }
 
@@ -15,6 +16,7 @@ const ProjectSchema: Schema = new Schema({
   description: { type: String, required: true },
   beforeImage: { type: String, default: "" },
   afterImage: { type: String, default: "" },
+  images: { type: [String], default: [] },
   createdAt: { type: Date, default: Date.now },
 });
 

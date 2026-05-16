@@ -39,6 +39,7 @@ export async function GET() {
       description: p.description,
       beforeImage: p.beforeImage,
       afterImage: p.afterImage,
+      images: p.images || [],
       createdAt: p.createdAt,
     }));
 
@@ -54,13 +55,40 @@ export async function POST(req: Request) {
     await dbConnect();
     const body = await req.json();
     
-    // Upload images if they are base64
-    const beforeImageUrl = await uploadImage(body.beforeImage);
-    const afterImageUrl = await uploadImage(body.afterImage);
+    // Collect all unique base64 images to upload
+    const uniqueBase64s = new Set<string>();
+    if (body.beforeImage?.startsWith("data:")) uniqueBase64s.add(body.beforeImage);
+    if (body.afterImage?.startsWith("data:")) uniqueBase64s.add(body.afterImage);
+    (body.images || []).forEach((img: string) => {
+      if (img?.startsWith("data:")) uniqueBase64s.add(img);
+    });
+
+    // Upload unique images and create a map
+    const uploadMap = new Map<string, string>();
+    await Promise.all(
+      Array.from(uniqueBase64s).map(async (base64) => {
+        const url = await uploadImage(base64);
+        if (url) uploadMap.set(base64, url);
+      })
+    );
+
+    // Resolve final URLs
+    const beforeImageUrl = body.beforeImage?.startsWith("data:") 
+      ? uploadMap.get(body.beforeImage) || "" 
+      : body.beforeImage;
+    
+    const afterImageUrl = body.afterImage?.startsWith("data:") 
+      ? uploadMap.get(body.afterImage) || "" 
+      : body.afterImage;
+
+    const finalImages = (body.images || []).map((img: string) => {
+      if (img?.startsWith("data:")) return uploadMap.get(img) || "";
+      return img;
+    }).filter(Boolean);
 
     let project;
     
-    // Check if it's an update (has a valid Mongo ID)
+    // Check if it's an update
     if (body.id && body.id.length === 24) {
       project = await Project.findByIdAndUpdate(
         body.id,
@@ -68,8 +96,9 @@ export async function POST(req: Request) {
           name: body.name,
           suburb: body.suburb,
           description: body.description,
-          beforeImage: beforeImageUrl || body.beforeImage,
-          afterImage: afterImageUrl || body.afterImage,
+          beforeImage: beforeImageUrl,
+          afterImage: afterImageUrl,
+          images: finalImages,
         },
         { new: true }
       );
@@ -81,6 +110,7 @@ export async function POST(req: Request) {
         description: body.description,
         beforeImage: beforeImageUrl,
         afterImage: afterImageUrl,
+        images: finalImages,
       });
     }
 
@@ -91,6 +121,7 @@ export async function POST(req: Request) {
       description: project.description,
       beforeImage: project.beforeImage,
       afterImage: project.afterImage,
+      images: project.images,
       createdAt: project.createdAt,
     });
   } catch (error) {
