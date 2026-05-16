@@ -39,11 +39,13 @@ export default function ProjectsPage() {
       reader.onloadend = () => {
         setEditing(prev => {
           if (!prev) return null;
-          const newImages = [...(prev.images || []), reader.result as string];
-          // Auto-set before/after if they are empty
+          const imgData = reader.result as string;
+          const newImages = [...(prev.images || []), imgData];
+          
+          // Only auto-set if they are completely empty
           let { beforeImage, afterImage } = prev;
-          if (!beforeImage) beforeImage = reader.result as string;
-          else if (!afterImage) afterImage = reader.result as string;
+          if (!beforeImage) beforeImage = imgData;
+          else if (!afterImage) afterImage = imgData;
           
           return { ...prev, images: newImages, beforeImage, afterImage };
         });
@@ -53,16 +55,26 @@ export default function ProjectsPage() {
   };
 
   const removeImage = (index: number) => {
-    if (!editing) return;
-    const newImages = [...editing.images];
-    const removedUrl = newImages[index];
-    newImages.splice(index, 1);
-    
-    let { beforeImage, afterImage } = editing;
-    if (beforeImage === removedUrl) beforeImage = newImages[0] || "";
-    if (afterImage === removedUrl) afterImage = newImages[1] || newImages[0] || "";
-    
-    setEditing({ ...editing, images: newImages, beforeImage, afterImage });
+    setEditing(prev => {
+      if (!prev) return null;
+      const newImages = [...prev.images];
+      const removedUrl = newImages[index];
+      newImages.splice(index, 1);
+      
+      let { beforeImage, afterImage } = prev;
+      if (beforeImage === removedUrl) beforeImage = newImages[0] || "";
+      if (afterImage === removedUrl) afterImage = newImages[1] || newImages[0] || "";
+      
+      return { ...prev, images: newImages, beforeImage, afterImage };
+    });
+  };
+
+  const setAsBefore = (img: string) => {
+    setEditing(prev => prev ? ({ ...prev, beforeImage: img }) : null);
+  };
+
+  const setAsAfter = (img: string) => {
+    setEditing(prev => prev ? ({ ...prev, afterImage: img }) : null);
   };
 
   return (
@@ -94,36 +106,42 @@ export default function ProjectsPage() {
               
               <div className="mt-4">
                 <label className="text-sm font-medium text-foreground mb-2 block">Project Images</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
                   {(editing.images || []).map((img, idx) => (
-                    <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border border-white/10 group">
-                      <img src={img} alt="Project" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">
-                        <div className="flex gap-1 w-full">
+                    <div key={idx} className="flex flex-col gap-2 glass-panel p-3 rounded-xl border border-white/10">
+                      <div className="relative aspect-video rounded-lg overflow-hidden">
+                        <img src={img} alt="Project" className="w-full h-full object-cover" />
+                        {editing.beforeImage === img && <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-1 rounded shadow-lg">BEFORE</div>}
+                        {editing.afterImage === img && <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-[10px] font-bold px-2 py-1 rounded shadow-lg">AFTER</div>}
+                      </div>
+                      
+                      <div className="flex flex-col gap-2">
+                        <div className="flex gap-2">
                           <button 
-                            onClick={() => setEditing({ ...editing, beforeImage: img })}
-                            className={`flex-1 text-[10px] py-1 rounded ${editing.beforeImage === img ? 'bg-primary text-primary-foreground' : 'bg-white/20 text-white'}`}
+                            onClick={() => setAsBefore(img)}
+                            className={`flex-1 py-2 rounded-lg font-medium text-xs transition-all ${editing.beforeImage === img ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground'}`}
                           >
-                            Before
+                            Set Before
                           </button>
                           <button 
-                            onClick={() => setEditing({ ...editing, afterImage: img })}
-                            className={`flex-1 text-[10px] py-1 rounded ${editing.afterImage === img ? 'bg-primary text-primary-foreground' : 'bg-white/20 text-white'}`}
+                            onClick={() => setAsAfter(img)}
+                            className={`flex-1 py-2 rounded-lg font-medium text-xs transition-all ${editing.afterImage === img ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground'}`}
                           >
-                            After
+                            Set After
                           </button>
                         </div>
-                        <button onClick={() => removeImage(idx)} className="text-destructive hover:bg-destructive/20 p-1 rounded-full transition-colors">
-                          <Trash2 size={16} />
+                        <button 
+                          onClick={() => removeImage(idx)} 
+                          className="flex items-center justify-center gap-2 py-2 rounded-lg bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all text-xs font-medium"
+                        >
+                          <Trash2 size={14} /> Remove Photo
                         </button>
                       </div>
-                      {editing.beforeImage === img && <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[8px] font-bold px-1.5 py-0.5 rounded">BEFORE</div>}
-                      {editing.afterImage === img && <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-[8px] font-bold px-1.5 py-0.5 rounded">AFTER</div>}
                     </div>
                   ))}
-                  <label className="aspect-video rounded-lg border-2 border-dashed border-white/10 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors bg-white/5">
-                    <Plus size={24} className="text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground mt-1">Add Photos</span>
+                  <label className="aspect-video rounded-xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 transition-colors bg-white/5 group">
+                    <Plus size={32} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                    <span className="text-sm text-muted-foreground mt-2 group-hover:text-foreground">Add More Photos</span>
                     <input type="file" multiple accept="image/*" onChange={(e) => addImages(e.target.files)} className="hidden" />
                   </label>
                 </div>
