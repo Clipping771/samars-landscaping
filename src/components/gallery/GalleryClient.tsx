@@ -81,7 +81,7 @@ export function GalleryClient() {
             index={index}
             showingBefore={showBefore[project.id] || false}
             onToggle={() => toggleImage(project.id)}
-            onOpenLightbox={(idx) => openLightbox(project.id, idx)}
+            onOpenLightbox={(idx: number) => openLightbox(project.id, idx)}
           />
         ))}
       </div>
