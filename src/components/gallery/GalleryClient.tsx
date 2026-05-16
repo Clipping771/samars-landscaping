@@ -86,37 +86,6 @@ export function GalleryClient() {
         ))}
       </div>
 
-              <div className="p-6 md:p-8 flex-1 flex flex-col bg-gradient-to-b from-white/5 to-transparent">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-heading text-2xl text-foreground">
-                    {project.name}
-                  </h3>
-                  {totalImages > 0 && (
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-2">
-                      {totalImages} Photos
-                    </span>
-                  )}
-                </div>
-                <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-4">
-                  {project.suburb}
-                </p>
-                <p className="text-muted-foreground text-base leading-relaxed flex-1 line-clamp-2">
-                  {project.description}
-                </p>
-                {totalImages > 0 && (
-                  <button 
-                    onClick={() => openLightbox(project.id)}
-                    className="mt-6 flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors group/btn"
-                  >
-                    View All Photos <ChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-
       {/* Lightbox Modal */}
       <AnimatePresence>
         {activeProject && (
@@ -149,11 +118,39 @@ export function GalleryClient() {
                 <ChevronLeft size={48} />
               </button>
 
-              <img 
-                src={activeProject.images[lightboxIndex]} 
-                alt={`${activeProject.name} project photo ${lightboxIndex + 1}`}
-                className="max-w-full max-h-full object-contain rounded-lg"
-              />
+              <div className="w-full h-full flex flex-col items-center">
+                <div className="flex-1 w-full relative flex items-center justify-center overflow-hidden">
+                  <AnimatePresence mode="wait">
+                    <motion.img
+                      key={lightboxIndex}
+                      src={activeProject.images[lightboxIndex]}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className="max-w-full max-h-full object-contain shadow-2xl rounded-lg"
+                      alt="Project detail"
+                    />
+                  </AnimatePresence>
+                </div>
+                
+                <div className="mt-8 text-center">
+                  <h3 className="text-white text-2xl font-heading mb-1">{activeProject.name}</h3>
+                  <p className="text-white/60 text-sm">Photo {lightboxIndex + 1} of {activeProject.images.length}</p>
+                </div>
+
+                {/* Thumbnails */}
+                <div className="mt-6 flex gap-2 overflow-x-auto pb-2 px-4 max-w-full">
+                  {activeProject.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setLightboxIndex(idx)}
+                      className={`relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden border-2 transition-all ${lightboxIndex === idx ? 'border-primary scale-110' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                    >
+                      <img src={img} className="w-full h-full object-cover" alt="Thumbnail" />
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               <button 
                 onClick={() => nextImage(activeProject.images)}
@@ -161,24 +158,6 @@ export function GalleryClient() {
               >
                 <ChevronRight size={48} />
               </button>
-            </div>
-
-            <div className="mt-8 text-center">
-              <h4 className="font-heading text-2xl text-white mb-2">{activeProject.name}</h4>
-              <p className="text-white/60 text-sm">
-                Photo {lightboxIndex + 1} of {activeProject.images.length}
-              </p>
-              <div className="flex gap-2 mt-4 overflow-x-auto max-w-md mx-auto p-2 scrollbar-hide">
-                {activeProject.images.map((img, idx) => (
-                  <button 
-                    key={idx}
-                    onClick={() => setLightboxIndex(idx)}
-                    className={`relative w-16 h-12 rounded-md overflow-hidden flex-shrink-0 border-2 transition-all ${lightboxIndex === idx ? 'border-primary' : 'border-transparent opacity-50 hover:opacity-100'}`}
-                  >
-                    <img src={img} className="w-full h-full object-cover" alt="thumbnail" />
-                  </button>
-                ))}
-              </div>
             </div>
           </motion.div>
         )}
