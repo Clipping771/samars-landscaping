@@ -25,7 +25,20 @@ export default function ProjectsPage() {
   };
 
   const handleSave = async () => {
-    if (!editing || !editing.name.trim()) return;
+    if (!editing) return;
+    
+    // Form Validation
+    const errors = [];
+    if (!editing.name.trim()) errors.push("Project Name is required.");
+    if (!editing.suburb.trim()) errors.push("Suburb is required.");
+    if (!editing.description.trim()) errors.push("Description is required.");
+    if (!editing.beforeImage || !editing.afterImage) errors.push("Please select both a 'Before' and an 'After' photo for the transformation view.");
+    
+    if (errors.length > 0) {
+      alert("Please fix the following issues:\n\n- " + errors.join("\n- "));
+      return;
+    }
+
     await save(editing);
     setEditing(null);
     setIsNew(false);
@@ -38,7 +51,7 @@ export default function ProjectsPage() {
         const canvas = document.createElement("canvas");
         let width = img.width;
         let height = img.height;
-        const max = 1200; // Max width/height
+        const max = 1000; // Lowered to 1000px for better compression
         
         if (width > height && width > max) {
           height *= max / width;
@@ -52,7 +65,8 @@ export default function ProjectsPage() {
         canvas.height = height;
         const ctx = canvas.getContext("2d");
         ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", 0.8)); // 80% quality JPEG
+        // Compressed to 0.6 (60%) quality for much smaller file size
+        resolve(canvas.toDataURL("image/jpeg", 0.6)); 
       };
       img.src = base64;
     });
@@ -133,7 +147,31 @@ export default function ProjectsPage() {
               <textarea placeholder="Description" rows={3} value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className="bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-foreground focus:border-primary focus:outline-none resize-none" />
               
               <div className="mt-4">
-                <label className="text-sm font-medium text-foreground mb-2 block">Project Images</label>
+                <label className="text-sm font-semibold text-foreground mb-4 block">Transformation Pair (Before & After)</label>
+                <div className="grid grid-cols-2 gap-4 p-4 bg-primary/5 rounded-xl border border-primary/20 mb-8">
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider text-center">Before View</span>
+                    <div className="aspect-video bg-white/5 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
+                      {editing.beforeImage ? (
+                        <img src={editing.beforeImage} className="w-full h-full object-cover" alt="Before" />
+                      ) : (
+                        <div className="text-[10px] text-muted-foreground text-center px-2">Select an image below as "Before"</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-wider text-center">After View</span>
+                    <div className="aspect-video bg-white/5 rounded-lg overflow-hidden border border-white/10 flex items-center justify-center">
+                      {editing.afterImage ? (
+                        <img src={editing.afterImage} className="w-full h-full object-cover" alt="After" />
+                      ) : (
+                        <div className="text-[10px] text-muted-foreground text-center px-2">Select an image below as "After"</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <label className="text-sm font-semibold text-foreground mb-4 block">All Project Photos</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-4">
                   {(editing.images || []).map((img, idx) => (
                     <div key={idx} className="flex flex-col gap-2 glass-panel p-3 rounded-xl border border-white/10">
