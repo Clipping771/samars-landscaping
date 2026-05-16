@@ -69,115 +69,22 @@ export function GalleryClient() {
         </h1>
         <p className="text-lg text-muted-foreground leading-relaxed">
           Explore our transformations. Click on the images to switch between the "Before" and "After" states. 
-          Use the gallery button to see all photos from each project.
+          Use the arrows to browse all project photos.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {projects.map((project, index) => {
-          const [currentIndex, setCurrentIndex] = useState(0);
-          const totalImages = project.images?.length || 0;
-          const showingBefore = showBefore[project.id] || false;
-          const hasBothImages = project.beforeImage && project.afterImage;
-          
-          // Determine what to show: if user is toggling Before/After, show those. 
-          // Otherwise show the current carousel image.
-          const currentImage = hasBothImages && showingBefore 
-            ? project.beforeImage 
-            : (project.images?.[currentIndex] || project.afterImage || project.beforeImage);
-
-          const handleNext = (e: React.MouseEvent) => {
-            e.stopPropagation();
-            setCurrentIndex((prev) => (prev + 1) % totalImages);
-            if (showingBefore) toggleImage(project.id); // Reset before toggle when sliding
-          };
-
-          const handlePrev = (e: React.MouseEvent) => {
-            e.stopPropagation();
-            setCurrentIndex((prev) => (prev - 1 + totalImages) % totalImages);
-            if (showingBefore) toggleImage(project.id); // Reset before toggle when sliding
-          };
-
-          return (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.6 }}
-              key={project.id}
-              className="group flex flex-col glass-panel rounded-2xl overflow-hidden hover:-translate-y-2 transition-all duration-300 shadow-xl shadow-black/20 border border-white/10"
-            >
-              <div 
-                className="relative h-64 sm:h-80 w-full overflow-hidden bg-forest-mid flex items-center justify-center cursor-pointer"
-                onClick={() => hasBothImages && toggleImage(project.id)}
-              >
-                <AnimatePresence mode="wait">
-                  <motion.img
-                    key={currentImage}
-                    src={currentImage}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4 }}
-                    alt={`${project.name} photo`}
-                    className="w-full h-full object-cover"
-                  />
-                </AnimatePresence>
-
-                {/* Slider Controls */}
-                {totalImages > 1 && (
-                  <>
-                    <button 
-                      onClick={handlePrev}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary"
-                    >
-                      <ChevronLeft size={20} />
-                    </button>
-                    <button 
-                      onClick={handleNext}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary"
-                    >
-                      <ChevronRight size={20} />
-                    </button>
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 px-2 py-1 rounded-full bg-black/20 backdrop-blur-sm">
-                      {project.images.map((_, i) => (
-                        <div 
-                          key={i} 
-                          className={`w-1.5 h-1.5 rounded-full transition-all ${currentIndex === i ? 'bg-primary w-3' : 'bg-white/40'}`}
-                        />
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {hasBothImages && (
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
-                    <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full font-medium text-sm border border-white/20">
-                      <ArrowLeftRight size={16} />
-                      {showingBefore ? "See After" : "See Before"}
-                    </div>
-                  </div>
-                )}
-                
-                {hasBothImages && (
-                  <div className="absolute top-4 left-4">
-                    <span className="bg-primary text-primary-foreground text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-lg">
-                      {showingBefore ? "Before" : "After"}
-                    </span>
-                  </div>
-                )}
-
-                {totalImages > 0 && (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openLightbox(project.id, currentIndex);
-                    }}
-                    className="absolute top-4 right-4 bg-black/50 backdrop-blur-md text-white p-2 rounded-full border border-white/10 hover:bg-primary transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    <Maximize2 size={16} />
-                  </button>
-                )}
-              </div>
+        {projects.map((project, index) => (
+          <ProjectCard 
+            key={project.id}
+            project={project}
+            index={index}
+            showingBefore={showBefore[project.id] || false}
+            onToggle={() => toggleImage(project.id)}
+            onOpenLightbox={(idx) => openLightbox(project.id, idx)}
+          />
+        ))}
+      </div>
 
               <div className="p-6 md:p-8 flex-1 flex flex-col bg-gradient-to-b from-white/5 to-transparent">
                 <div className="flex items-start justify-between mb-2">
@@ -277,5 +184,136 @@ export function GalleryClient() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function ProjectCard({ project, index, showingBefore, onToggle, onOpenLightbox }: any) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const totalImages = project.images?.length || 0;
+  const hasBothImages = project.beforeImage && project.afterImage;
+  
+  const currentImage = hasBothImages && showingBefore 
+    ? project.beforeImage 
+    : (project.images?.[currentIndex] || project.afterImage || project.beforeImage);
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % totalImages);
+    if (showingBefore) onToggle();
+  };
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + totalImages) % totalImages);
+    if (showingBefore) onToggle();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.1, duration: 0.6 }}
+      className="group flex flex-col glass-panel rounded-2xl overflow-hidden hover:-translate-y-2 transition-all duration-300 shadow-xl shadow-black/20 border border-white/10"
+    >
+      <div 
+        className="relative h-64 sm:h-80 w-full overflow-hidden bg-forest-mid flex items-center justify-center cursor-pointer"
+        onClick={() => hasBothImages && onToggle()}
+      >
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={currentImage}
+            src={currentImage}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            alt={`${project.name} photo`}
+            className="w-full h-full object-cover"
+          />
+        </AnimatePresence>
+
+        {/* Slider Controls */}
+        {totalImages > 1 && (
+          <>
+            <button 
+              onClick={handlePrev}
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary z-10"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button 
+              onClick={handleNext}
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-primary z-10"
+            >
+              <ChevronRight size={20} />
+            </button>
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 px-2 py-1 rounded-full bg-black/20 backdrop-blur-sm z-10">
+              {project.images.map((_: any, i: number) => (
+                <div 
+                  key={i} 
+                  className={`w-1.5 h-1.5 rounded-full transition-all ${currentIndex === i ? 'bg-primary w-3' : 'bg-white/40'}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {hasBothImages && (
+          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+            <div className="flex items-center gap-2 bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full font-medium text-sm border border-white/20">
+              <ArrowLeftRight size={16} />
+              {showingBefore ? "See After" : "See Before"}
+            </div>
+          </div>
+        )}
+        
+        {hasBothImages && (
+          <div className="absolute top-4 left-4">
+            <span className="bg-primary text-primary-foreground text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-lg">
+              {showingBefore ? "Before" : "After"}
+            </span>
+          </div>
+        )}
+
+        {totalImages > 0 && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenLightbox(currentIndex);
+            }}
+            className="absolute top-4 right-4 bg-black/50 backdrop-blur-md text-white p-2 rounded-full border border-white/10 hover:bg-primary transition-colors opacity-0 group-hover:opacity-100 z-10"
+          >
+            <Maximize2 size={16} />
+          </button>
+        )}
+      </div>
+
+      <div className="p-6 md:p-8 flex-1 flex flex-col bg-gradient-to-b from-white/5 to-transparent">
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="font-heading text-2xl text-foreground">
+            {project.name}
+          </h3>
+          {totalImages > 0 && (
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-2">
+              {totalImages} Photos
+            </span>
+          )}
+        </div>
+        <p className="text-sm font-semibold text-primary uppercase tracking-widest mb-4">
+          {project.suburb}
+        </p>
+        <p className="text-muted-foreground text-base leading-relaxed flex-1 line-clamp-2">
+          {project.description}
+        </p>
+        {totalImages > 0 && (
+          <button 
+            onClick={() => onOpenLightbox(currentIndex)}
+            className="mt-6 flex items-center gap-2 text-sm font-medium text-foreground hover:text-primary transition-colors group/btn"
+          >
+            View All Photos <ChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
+          </button>
+        )}
+      </div>
+    </motion.div>
   );
 }
