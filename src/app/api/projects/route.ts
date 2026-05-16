@@ -1,4 +1,6 @@
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // Increase timeout to 60 seconds
+
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongoose";
 import Project from "@/lib/models/Project";

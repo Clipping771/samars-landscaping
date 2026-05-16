@@ -31,21 +31,49 @@ export default function ProjectsPage() {
     setIsNew(false);
   };
 
+  const resizeImage = (base64: string): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const max = 1200; // Max width/height
+        
+        if (width > height && width > max) {
+          height *= max / width;
+          width = max;
+        } else if (height > max) {
+          width *= max / height;
+          height = max;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.8)); // 80% quality JPEG
+      };
+      img.src = base64;
+    });
+  };
+
   const addImages = (files: FileList | null) => {
     if (!files || !editing) return;
     
     Array.from(files).forEach(file => {
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
+        const originalBase64 = reader.result as string;
+        const resizedBase64 = await resizeImage(originalBase64);
+        
         setEditing(prev => {
           if (!prev) return null;
-          const imgData = reader.result as string;
-          const newImages = [...(prev.images || []), imgData];
+          const newImages = [...(prev.images || []), resizedBase64];
           
-          // Only auto-set if they are completely empty
           let { beforeImage, afterImage } = prev;
-          if (!beforeImage) beforeImage = imgData;
-          else if (!afterImage) afterImage = imgData;
+          if (!beforeImage) beforeImage = resizedBase64;
+          else if (!afterImage) afterImage = resizedBase64;
           
           return { ...prev, images: newImages, beforeImage, afterImage };
         });

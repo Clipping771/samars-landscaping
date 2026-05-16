@@ -64,14 +64,27 @@ export function useProjects() {
     save: async (p: AdminProject) => {
       setIsSaving(true);
       try {
-        await fetch("/api/projects", {
+        const res = await fetch("/api/projects", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(p),
         });
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          console.error("Save failed:", res.status, errorData);
+          if (res.status === 413) {
+            alert("The images are too large to upload all at once. Please try uploading fewer photos or smaller image files.");
+          } else {
+            alert(`Failed to save project: ${errorData.error || "Unknown error"}`);
+          }
+          return;
+        }
+        
         await fetchProjects();
       } catch (e) {
         console.error("Failed to save project", e);
+        alert("An error occurred while saving. Please check your internet connection.");
       } finally {
         setIsSaving(false);
       }
